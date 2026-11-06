@@ -1,0 +1,39 @@
+version: '3.8'
+
+# Overrides de produção. Use: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+services:
+  postgres:
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+    # Em produção o PostgreSQL NÃO é exposto publicamente.
+    # Para acesso administrativo, use SSH tunnel: ssh -L 5432:localhost:5432 usuario@servidor
+
+  redis:
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+    # Redis permanece interno à rede do Docker.
+
+  backend:
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+    environment:
+      NODE_ENV: production
+      EVOLUTION_WEBHOOK_BASE_URL: ${EVOLUTION_WEBHOOK_BASE_URL:-https://${DOMAIN_NAME}/api/webhooks/evolution}
+
+  worker:
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  frontend:
+    restart: always
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "./dist-test",
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*", "test/**/*", "prisma/seed.ts"]
+}

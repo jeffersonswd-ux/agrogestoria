@@ -1,0 +1,797 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// SUPER ADMIN / EMPRESAS / USUÁRIOS / PERMISSÕES
+// ─────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN_CLIENTE
+  GERENTE_FAZENDA
+  OPERADOR
+  FINANCEIRO
+  AGRONOMO
+}
+
+enum ClientStatus {
+  ATIVO
+  BLOQUEADO
+}
+
+model Company {
+  id                String             @id @default(cuid())
+  clientName        String
+  companyName       String
+  legalName         String?
+  document          String?            @unique
+  email             String?
+  whatsapp          String?
+  phone             String?
+  city              String?
+  state             String?
+  address           String?
+  notes             String?
+  status            ClientStatus       @default(ATIVO)
+  blockedReason     String?
+  blockedAt         DateTime?
+  simpleMode        Boolean            @default(false)
+  aiMonthlyLimit    Int?
+  userLimit         Int?
+  evolutionServerId String?
+  evolutionServer   EvolutionServer?   @relation(fields: [evolutionServerId], references: [id])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  users             User[]
+  farms             Farm[]
+  modulePermissions ModulePermission[]
+  aiUsages          AiUsage[]
+  whatsappInstances WhatsappInstance[]
+  auditLogs         AuditLog[]
+  refreshTokens     RefreshToken[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model User {
+  id                 String         @id @default(cuid())
+  companyId          String?
+  company            Company?       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name               String
+  email              String
+  passwordHash       String
+  role               UserRole       @default(OPERADOR)
+  active             Boolean        @default(true)
+  mustChangePassword Boolean        @default(false)
+  phone              String?
+  lastLoginAt        DateTime?
+  failedAttempts     Int            @default(0)
+  lockedUntil        DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  refreshTokens      RefreshToken[]
+  farms              UserFarm[]
+  auditLogs          AuditLog[]
+
+  @@unique([email])
+  @@index([companyId])
+  @@index([role])
+}
+
+model UserFarm {
+  userId String
+  farmId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  farm   Farm   @relation(fields: [farmId], references: [id], onDelete: Cascade)
+
+  @@id([userId, farmId])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model ModulePermission {
+  id        String   @id @default(cuid())
+  companyId String
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  module    String
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, module])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorRole String?
+  action    String
+  entity    String
+  entityId  String?
+  before    Json?
+  after     Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([companyId, createdAt])
+  @@index([entity, entityId])
+  @@index([action])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FAZENDAS / PROPRIEDADES / TALHÕES
+// ─────────────────────────────────────────────────────────────
+
+enum FarmStatus {
+  ATIVO
+  BLOQUEADO
+}
+
+model Farm {
+  id                    String      @id @default(cuid())
+  companyId             String
+  company               Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  code                  String?
+  name                  String
+  ownerName             String?
+  municipality          String?
+  state                 String?
+  address               String?
+  latitude              Float?
+  longitude             Float?
+  totalAreaHa           Float       @default(0)
+  agriculturalAreaHa    Float       @default(0)
+  availableAreaHa       Float       @default(0)
+  predominantProduction String?
+  notes                 String?
+  status                FarmStatus  @default(ATIVO)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  plots                 Plot[]
+  userFarms             UserFarm[]
+  seasons               Season[]
+  transactions          FinancialTransaction[]
+  crops                 Crop[]
+
+  @@index([companyId])
+  @@index([companyId, municipality])
+}
+
+enum SoilType {
+  ARGILOSO
+  ARENOSO
+  FRANCO
+  MISTO
+  LATOSSOLO
+  PODZOLICO
+  OUTRO
+}
+
+enum IrrigationType {
+  NENHUMA
+  GOTEJAMENTO
+  ASPERSAO
+  PIVO_CENTRAL
+  SULCO
+  OUTRO
+}
+
+model Plot {
+  id             String         @id @default(cuid())
+  companyId      String
+  farmId         String
+  farm           Farm           @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  code           String?
+  name           String
+  areaHa         Float
+  soilType       SoilType?      @default(OUTRO)
+  irrigationType IrrigationType @default(NENHUMA)
+  latitude       Float?
+  longitude      Float?
+  boundary       Json?
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  crops          Crop[]
+
+  @@index([companyId])
+  @@index([farmId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// CULTURAS / SAFRAS / PLANEJAMENTO
+// ─────────────────────────────────────────────────────────────
+
+model Crop {
+  id          String        @id @default(cuid())
+  companyId   String
+  farmId      String
+  farm        Farm          @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  plotId      String?
+  plot        Plot?         @relation(fields: [plotId], references: [id], onDelete: SetNull)
+  culture     String
+  variety     String?
+  areaHa      Float         @default(0)
+  cycle       String?
+  notes       String?
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  seasons     Season[]
+  cultures    CropCulture[]
+
+  @@index([companyId])
+  @@index([farmId])
+}
+
+model Season {
+  id                  String            @id @default(cuid())
+  companyId           String
+  farmId              String
+  farm                Farm              @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  cropId              String
+  crop                Crop              @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  name                String
+  plantingDatePlan    DateTime?
+  plantingDateDone    DateTime?
+  harvestDatePlan     DateTime?
+  harvestDateDone     DateTime?
+  estimatedProduction Float?
+  harvestedProduction Float?
+  estimatedYield      Float?
+  actualYield         Float?
+  unit                String            @default("sc")
+  plannedCost         Float             @default(0)
+  actualCost          Float             @default(0)
+  estimatedRevenue    Float?
+  actualRevenue       Float?
+  status              String            @default("PLANEJADA")
+  notes               String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  operations          FieldOperation[]
+  harvests            Harvest[]
+
+  @@index([companyId])
+  @@index([farmId])
+  @@index([status])
+}
+
+model CropCulture {
+  id          String   @id @default(cuid())
+  companyId   String
+  cropId      String
+  crop        Crop     @relation(fields: [cropId], references: [id], onDelete: Cascade)
+  cultureName String
+  hectares    Float    @default(0)
+  production  Float    @default(0)
+  unit        String   @default("sc")
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// OPERAÇÕES DE CAMPO / APLICAÇÕES / COLHEITAS
+// ─────────────────────────────────────────────────────────────
+
+enum OperationType {
+  PREPARO_SOLO
+  PLANTIO
+  ADUBACAO
+  PULVERIZACAO
+  IRRIGACAO
+  ROCAGEM
+  COLHEITA
+  TRANSPORTE
+  ADMINISTRATIVO
+  OUTRO
+}
+
+enum OperationStatus {
+  PLANEJADA
+  EM_ANDAMENTO
+  CONCLUIDA
+  ATRASADA
+  CANCELADA
+}
+
+model FieldOperation {
+  id          String           @id @default(cuid())
+  companyId   String
+  farmId      String
+  seasonId    String?
+  season      Season?          @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+  plotId      String?
+  type        OperationType
+  description String?
+  plannedDate DateTime?
+  doneDate    DateTime?
+  status      OperationStatus  @default(PLANEJADA)
+  employeeId  String?
+  machineId   String?
+  areaHa      Float            @default(0)
+  hours       Float            @default(0)
+  fuelLiters  Float            @default(0)
+  cost        Float            @default(0)
+  notes       String?
+  attachments Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  inputs      OperationInput[]
+
+  @@index([companyId])
+  @@index([farmId, status])
+  @@index([plannedDate])
+}
+
+model OperationInput {
+  id          String         @id @default(cuid())
+  companyId   String
+  operationId String
+  operation   FieldOperation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  productId   String?
+  description String
+  quantity    Float
+  unit        String
+  unitCost    Float          @default(0)
+  totalCost   Float          @default(0)
+
+  @@index([companyId])
+}
+
+model Harvest {
+  id            String   @id @default(cuid())
+  companyId     String
+  farmId        String
+  seasonId      String
+  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  harvestDate   DateTime
+  areaHarvested Float    @default(0)
+  quantity      Float    @default(0)
+  unit          String   @default("sc")
+  moisture      Float?
+  quality       String?
+  losses        Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([companyId])
+  @@index([farmId])
+}
+
+model InventoryMovement {
+  id          String   @id @default(cuid())
+  companyId   String
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type        String
+  quantity    Float
+  unitCost    Float    @default(0)
+  lot         String?
+  expiresAt   DateTime?
+  notes       String?
+  referenceId String?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@index([companyId])
+  @@index([productId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// MÁQUINAS / FOLHA DE PAGAMENTO / MANUTENÇÕES
+// ─────────────────────────────────────────────────────────────
+
+model Machine {
+  id               String        @id @default(cuid())
+  companyId        String
+  farmId           String?
+  code             String?
+  name             String
+  type             String
+  brand            String?
+  model            String?
+  year             Int?
+  plate            String?
+  hoursMeter       Float         @default(0)
+  mileage          Float         @default(0)
+  fuelType         String?
+  status           String        @default("ATIVO")
+  acquisitionDate  DateTime?
+  acquisitionValue Float?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  maintenance      Maintenance[]
+  fuelings         FuelLog[]
+
+  @@index([companyId])
+}
+
+model Maintenance {
+  id               String   @id @default(cuid())
+  companyId        String
+  machineId        String
+  machine          Machine  @relation(fields: [machineId], references: [id], onDelete: Cascade)
+  type             String
+  description      String?
+  date             DateTime
+  hoursMeter       Float?
+  mileage          Float?
+  parts            String?
+  cost             Float    @default(0)
+  nextServiceDate  DateTime?
+  nextServiceHours Float?
+  status           String   @default("CONCLUIDA")
+  notes            String?
+  createdAt        DateTime @default(now())
+
+  @@index([companyId])
+  @@index([machineId])
+}
+
+model FuelLog {
+  id         String   @id @default(cuid())
+  companyId  String
+  machineId  String?
+  machine    Machine? @relation(fields: [machineId], references: [id], onDelete: SetNull)
+  date       DateTime
+  liters     Float
+  unitPrice  Float    @default(0)
+  totalCost  Float    @default(0)
+  hoursMeter Float?
+  mileage    Float?
+  station    String?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+  @@index([machineId])
+}
+
+model Employee {
+  id          String      @id @default(cuid())
+  companyId   String
+  farmId      String?
+  name        String
+  document    String?
+  role        String
+  phone       String?
+  email       String?
+  salary      Float?
+  dailyRate   Float?
+  hireDate    DateTime?
+  active      Boolean     @default(true)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  timeEntries TimeEntry[]
+
+  @@index([companyId])
+}
+
+model TimeEntry {
+  id         String   @id @default(cuid())
+  companyId  String
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  farmId     String?
+  date       DateTime
+  hours      Float
+  activity   String?
+  cost       Float    @default(0)
+  notes      String?
+
+  @@index([companyId])
+}
+
+model FieldJournal {
+  id         String   @id @default(cuid())
+  companyId  String
+  farmId     String
+  plotId     String?
+  seasonId   String?
+  date       DateTime
+  activity   String
+  employeeId String?
+  machineId  String?
+  inputs     String?
+  cost       Float    @default(0)
+  photos     Json?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([companyId])
+  @@index([farmId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// ESTOQUE / SUPRIMENTOS / COMPRAS / VENDAS
+// ─────────────────────────────────────────────────────────────
+
+model Product {
+  id                String               @id @default(cuid())
+  companyId         String
+  farmId            String?
+  name              String
+  category          String
+  unit              String               @default("un")
+  sku               String?
+  quantity          Float                @default(0)
+  minStock          Float                @default(0)
+  unitCost          Float                @default(0)
+  storageLocation   String?
+  notes             String?
+  active            Boolean              @default(true)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  movements         InventoryMovement[]
+  purchaseItems     PurchaseItem[]
+  saleItems         SaleItem[]
+
+  @@index([companyId])
+}
+
+model Supplier {
+  id        String     @id @default(cuid())
+  companyId String
+  name      String
+  document  String?
+  phone     String?
+  email     String?
+  address   String?
+  category  String?
+  createdAt DateTime   @default(now())
+  purchases Purchase[]
+
+  @@index([companyId])
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  companyId String
+  name      String
+  document  String?
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  sales     Sale[]
+
+  @@index([companyId])
+}
+
+model Purchase {
+  id          String         @id @default(cuid())
+  companyId   String
+  supplierId  String
+  supplier    Supplier       @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  number      String?
+  date        DateTime
+  status      String         @default("ABERTA")
+  total       Float          @default(0)
+  discount    Float          @default(0)
+  freight     Float          @default(0)
+  notes       String?
+  attachments Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  items       PurchaseItem[]
+
+  @@index([companyId])
+  @@index([supplierId])
+}
+
+model PurchaseItem {
+  id          String   @id @default(cuid())
+  companyId   String
+  purchaseId  String
+  purchase    Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Float
+  unit        String   @default("un")
+  unitPrice   Float    @default(0)
+  total       Float    @default(0)
+  received    Boolean  @default(false)
+
+  @@index([companyId])
+}
+
+model Sale {
+  id          String     @id @default(cuid())
+  companyId   String
+  customerId  String?
+  customer    Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  number      String?
+  date        DateTime
+  status      String     @default("ABERTA")
+  culture     String?
+  seasonId    String?
+  total       Float      @default(0)
+  discount    Float      @default(0)
+  notes       String?
+  attachments Json?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       SaleItem[]
+
+  @@index([companyId])
+}
+
+model SaleItem {
+  id          String   @id @default(cuid())
+  companyId   String
+  saleId      String
+  sale        Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  description String
+  quantity    Float
+  unit        String   @default("sc")
+  unitPrice   Float    @default(0)
+  total       Float    @default(0)
+  delivered   Boolean  @default(false)
+
+  @@index([companyId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FINANCEIRO / INTEGRAÇÕES / IA
+// ─────────────────────────────────────────────────────────────
+
+model FinancialTransaction {
+  id          String    @id @default(cuid())
+  companyId   String
+  farmId      String?
+  farm        Farm?     @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  type        String
+  category    String
+  description String
+  amount      Float
+  paidAmount  Float     @default(0)
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      String    @default("PENDENTE")
+  seasonId    String?
+  notes       String?
+  attachments Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([companyId, status])
+  @@index([companyId, dueDate])
+  @@index([farmId])
+}
+
+model EvolutionServer {
+  id        String   @id @default(cuid())
+  name      String
+  baseUrl   String
+  apiKey    String
+  status    String   @default("ATIVO")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  companies Company[]
+  instances WhatsappInstance[]
+}
+
+model WhatsappInstance {
+  id                   String            @id @default(cuid())
+  companyId            String
+  company              Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  serverId             String?
+  server               EvolutionServer?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  name                 String
+  instanceKey          String            @unique
+  phone                String?
+  status               String            @default("DESCONECTADO")
+  notificationsEnabled Boolean           @default(true)
+  qrCode               String?
+  lastConnectedAt      DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  messages             WhatsappMessage[]
+
+  @@index([companyId])
+}
+
+model WhatsappMessage {
+  id         String           @id @default(cuid())
+  companyId  String
+  instanceId String
+  instance   WhatsappInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  direction  String
+  fromNumber String?
+  toNumber   String?
+  body       String?
+  mediaType  String?
+  status     String           @default("RECEBIDA")
+  raw        Json?
+  createdAt  DateTime         @default(now())
+
+  @@index([companyId])
+  @@index([instanceId])
+}
+
+enum AiStatus {
+  PENDENTE
+  CONCLUIDO
+  ERRO
+}
+
+model AiUsage {
+  id               String   @id @default(cuid())
+  companyId        String
+  company          Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  model            String
+  promptTokens     Int      @default(0)
+  completionTokens Int      @default(0)
+  totalTokens      Int      @default(0)
+  costUsd          Float    @default(0)
+  status           AiStatus @default(PENDENTE)
+  question         String?
+  answer           String?
+  source           String   @default("WEB")
+  createdAt        DateTime @default(now())
+
+  @@index([companyId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  companyId String
+  type      String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+
+  @@index([companyId, read])
+}
+
+model AiMessageCache {
+  id        String   @id @default(cuid())
+  hash      String   @unique
+  answer    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model WeatherCache {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  data      Json
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
