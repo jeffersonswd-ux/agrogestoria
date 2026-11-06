@@ -34,6 +34,9 @@ backups/
 # Build do painel web (gerado em apps/backend/public pelo vite)
 apps/backend/public/
 
+# Segredos gerados localmente (nunca versionar)
+SEGREDOS_HOSTINGER.txt
+
 # Ferramentas locais
 .tools/
 .idea/
