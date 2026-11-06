@@ -31,6 +31,9 @@ backups/
 *.sql.gz
 *.tar.gz
 
+# Build do painel web (gerado em apps/backend/public pelo vite)
+apps/backend/public/
+
 # Ferramentas locais
 .tools/
 .idea/

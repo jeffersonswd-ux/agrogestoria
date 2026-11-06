@@ -2,17 +2,22 @@
   "name": "agrogestor-ia",
   "private": true,
   "version": "1.0.0",
+  "description": "AgroGestor IA - SaaS agricola multiempresas (backend, worker e painel web)",
   "scripts": {
-    "install:all": "npm run install --prefix apps/backend && npm run install --prefix apps/worker && npm run install --prefix apps/frontend",
-    "build": "npm run build --prefix apps/backend && npm run build --prefix apps/worker && npm run build --prefix apps/frontend",
+    "start": "npm start --prefix apps/backend",
+    "start:worker": "npm start --prefix apps/worker",
+    "build": "npm run install:all && npm run build --prefix apps/backend && npm run build --prefix apps/worker && npm run build --prefix apps/frontend",
+    "build:frontend": "npm run build --prefix apps/frontend",
+    "postinstall": "npm run install:all",
+    "install:all": "npm install --prefix apps/backend && npm install --prefix apps/worker && npm install --prefix apps/frontend",
     "dev:backend": "npm run start:dev --prefix apps/backend",
     "dev:worker": "npm run start:dev --prefix apps/worker",
     "dev:frontend": "npm run dev --prefix apps/frontend",
     "db:migrate": "npm run prisma:deploy --prefix apps/backend",
     "db:push": "npm run prisma:push --prefix apps/backend",
+    "db:migrate:dev": "npm run prisma:migrate --prefix apps/backend",
     "seed": "npm run seed --prefix apps/backend",
-    "test": "npm test --prefix apps/backend",
-    "db:migrate:dev": "npm run prisma:migrate --prefix apps/backend"
+    "test": "npm test --prefix apps/backend"
   },
   "engines": {
     "node": ">=20"

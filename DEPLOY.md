@@ -61,7 +61,59 @@ Para criar o Super Admin:
 
 Anote o e-mail e a senha exibidos. A senha nunca mais será exibida.
 
-## 5. Proxy reverso e HTTPS
+## 5. Hostinger (hPanel) — Git e aplicação Node
+
+A Hostinger importa o repositório pelo GitHub. O sistema roda em um único processo
+Node: o backend serve a API **e** o painel web, então basta uma aplicação.
+
+Ao criar a aplicação, informe:
+
+| Campo da Hostinger | Valor |
+|---|---|
+| Tipo de aplicação | Node.js |
+| Repositório | `jeffersonswd-ux/agrogestoria` |
+| Branch | `main` |
+| Versão do Node | 20 ou superior |
+| Comando de build | `npm run build` |
+| Comando de start | `npm start` |
+| Porta | a mesma definida em `PORT` (por padrão 3001) |
+
+O `npm run build` compila o backend, o worker e o painel web. O `npm start` sobe a
+API, que também entrega o painel e encaminha `/api` e `/uploads` no mesmo domínio.
+
+Variáveis de ambiente obrigatórias na Hostinger:
+
+| Variável | Observação |
+|---|---|
+| `NODE_ENV` | `production` |
+| `PORT` | porta que a Hostinger atribuir à aplicação |
+| `DATABASE_URL` | `postgresql://USER:SENHA@HOST:5432/DB?schema=public` |
+| `REDIS_URL` | `redis://HOST:6379` |
+| `JWT_SECRET` | `openssl rand -hex 48` |
+| `JWT_REFRESH_SECRET` | `openssl rand -hex 48` |
+| `ENCRYPTION_KEY` | `openssl rand -hex 32` |
+| `CORS_ORIGINS` | domínio do painel, ex.: `https://seudominio.com` |
+| `FRONTEND_URL` | mesmo valor de `CORS_ORIGINS` |
+| `WEB_DIR` | caminho do build do painel, ex.: `/home/uX/agrogestoria/apps/frontend/dist` |
+| `SUPERADMIN_EMAIL` | e-mail do administrador da plataforma |
+| `SUPERADMIN_PASSWORD` | senha inicial do Super Admin |
+
+Aplicações na Hostinger não têm acesso ao sistema de arquivos do repositório depois
+do build, por isso o `WEB_DIR` precisa apontar para a pasta real do build. Se a
+aplicação rodar em um container próprio, o caminho padrão já resolve e o `WEB_DIR`
+é dispensável.
+
+Depois do primeiro deploy, rode as migrations e crie o Super Admin pelo SSH:
+
+```bash
+cd /home/uX/agrogestoria
+npm run db:migrate
+npm run seed
+```
+
+Verifique a aplicação em `/api/health` e o painel na raiz do domínio.
+
+## 6. Proxy reverso e HTTPS
 
 O container `frontend` já serve a SPA e encaminha `/api` e `/uploads` ao backend.
 Falta apenas expor o domínio com HTTPS. Duas opções:
@@ -130,7 +182,7 @@ internos à rede do Docker. Para administration local, use túnel SSH:
 ssh -L 5432:localhost:5432 -L 6379:localhost:6379 usuario@servidor
 ```
 
-## 6. Evolution API (WhatsApp)
+## 7. Evolution API (WhatsApp)
 
 O WhatsApp roda **no backend**, sem depender de navegador aberto.
 
@@ -159,7 +211,7 @@ services:
       - evolution_instances:/evolution/instances
 ```
 
-## 7. OpenAI
+## 8. OpenAI
 
 Defina `OPENAI_API_KEY` no `.env` e reinicie:
 
@@ -169,7 +221,7 @@ docker compose up -d --force-recreate backend worker
 
 Sem a chave, o sistema funciona normalmente, mas o Assistente IA responde que não está configurado.
 
-## 8. Backup
+## 9. Backup
 
 ```bash
 ./scripts/backup.sh
@@ -191,7 +243,7 @@ Manter apenas o backup na mesma máquina não protege contra perda do disco.
 ./scripts/restore.sh ./backups/agrogestor-YYYYMMDD-HHMMSS.sql.gz
 ```
 
-## 9. Atualizar o sistema
+## 10. Atualizar o sistema
 
 ```bash
 cd /opt/agrogestor
@@ -201,7 +253,7 @@ docker compose up -d
 docker compose exec backend npx prisma migrate deploy
 ```
 
-## 10. Verificação
+## 11. Verificação
 
 ```bash
 docker compose ps                                    # todos os serviços ativos

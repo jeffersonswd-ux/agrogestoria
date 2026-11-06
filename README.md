@@ -115,9 +115,22 @@ O Super Admin ignora o filtro de empresa para dar suporte, e toda ação dele é
 
 ## Documentação
 
-- [DEPLOY.md](DEPLOY.md) — instalação em nuvem, proxy reverso, HTTPS e backup
+- [DEPLOY.md](DEPLOY.md) — instalação em nuvem, **deploy na Hostinger**, proxy reverso, HTTPS e backup
 - [PROGRESSO.md](PROGRESSO.md) — módulos concluídos, testes executados e pendências
 - Documentação interativa da API: `http://localhost:3001/api/docs`
+
+## Deploy em um processo só (Hostinger, Render, VPS)
+
+O backend também entrega o painel web. Isso permite rodar API e painel em um
+único processo Node, que é o formato esperado pela Hostinger.
+
+```bash
+npm run build   # compila backend, worker e painel
+npm start       # sobe a API e o painel na mesma porta
+```
+
+O painel é procurado em `WEB_DIR` e, se não definido, em `apps/frontend/dist`.
+No deploy da Hostinger, veja a seção 5 do [DEPLOY.md](DEPLOY.md).
 
 ## Comandos
 

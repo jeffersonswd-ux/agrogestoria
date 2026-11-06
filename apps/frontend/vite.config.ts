@@ -19,5 +19,5 @@ export default defineConfig({
       '/uploads': { target: 'http://localhost:3001', changeOrigin: true },
     },
   },
-  build: { outDir: 'dist', sourcemap: false, chunkSizeWarningLimit: 1500 },
+  build: { outDir: 'dist', emptyOutDir: true, sourcemap: false, chunkSizeWarningLimit: 1500 },
 });
