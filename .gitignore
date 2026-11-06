@@ -23,11 +23,11 @@ pids/
 *.pid
 *.seed
 
-# Uploads e backups gerados
+# Uploads e backups gerados (apenas as pastas de arquivos enviados, nunca o código-fonte)
 apps/backend/uploads/
 apps/worker/uploads/
-uploads/
-backups/
+/uploads/
+/backups/
 *.sql.gz
 *.tar.gz
 
