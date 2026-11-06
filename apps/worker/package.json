@@ -12,12 +12,11 @@
     "bullmq": "^5.34.10",
     "dotenv": "^16.4.7",
     "ioredis": "^5.4.2",
-    "openai": "^4.77.0"
-  },
-  "devDependencies": {
+    "openai": "^4.77.0",
     "@types/node": "^22.10.2",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
-  }
+  },
+  "devDependencies": {}
 }
