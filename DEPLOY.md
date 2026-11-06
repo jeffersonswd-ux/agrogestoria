@@ -81,6 +81,12 @@ Ao criar a aplicação, informe:
 O `npm run build` compila o backend, o worker e o painel web. O `npm start` sobe a
 API, que também entrega o painel e encaminha `/api` e `/uploads` no mesmo domínio.
 
+> **Atenção ao `NODE_ENV=production`:** com essa variável definida durante a instalação,
+> o npm não instala as `devDependencies`. Por isso o TypeScript, o Prisma, o Vite e o `tsx`
+> ficam declarados em `dependencies` nos três aplicativos. Se alguém movê-los de volta para
+> `devDependencies`, o build quebra com `tsc: command not found`.
+> Para reproduzir esse cenário antes de publicar, rode `bash scripts/testar-build-producao.sh`.
+
 Variáveis de ambiente obrigatórias na Hostinger:
 
 | Variável | Observação |

@@ -37,6 +37,9 @@ apps/backend/public/
 # Segredos gerados localmente (nunca versionar)
 SEGREDOS_HOSTINGER.txt
 
+# Diretório temporário do teste de build de produção
+.producao-teste/
+
 # Ferramentas locais
 .tools/
 .idea/
