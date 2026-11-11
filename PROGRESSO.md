@@ -111,7 +111,7 @@ alertas de manutenção preventiva e estoque mínimo. Todas as tarefas funcionam
 
 ```bash
 # terminais separados
-cd apps/backend && node dist/main.js      # API em :3001
+cd apps/backend && node dist/main.js      # API em :3000
 cd apps/worker  && node dist/index.js     # workers
 cd apps/frontend && npx vite              # SPA em :5173
 

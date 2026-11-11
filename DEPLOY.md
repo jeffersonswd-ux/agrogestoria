@@ -76,7 +76,7 @@ Ao criar a aplicação, informe:
 | Versão do Node | 20 ou superior |
 | Comando de build | `npm run build` |
 | Comando de start | `npm start` |
-| Porta | a mesma definida em `PORT` (por padrão 3001) |
+| Porta | a mesma definida em `PORT` (por padrão 3000) |
 
 O `npm run build` compila o backend, o worker e o painel web. O `npm start` sobe a
 API, que também entrega o painel e encaminha `/api` e `/uploads` no mesmo domínio.

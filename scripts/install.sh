@@ -36,7 +36,7 @@ echo "→ Verificando a saúde dos serviços..."
 sleep 10
 docker compose ps
 
-HEALTH="$(curl -fsS http://localhost:3001/api/health 2>/dev/null || echo 'sem-resposta')"
+HEALTH="$(curl -fsS http://localhost:3000/api/health 2>/dev/null || echo 'sem-resposta')"
 echo "Health do backend: $HEALTH"
 
 cat <<'EOF'

@@ -31,17 +31,17 @@ say "6/8 Build do frontend"
 (cd apps/frontend && npx vite build) >>"$LOG" 2>&1 && ok "frontend compilado" || { err "falhou o build do frontend"; tail -30 "$LOG"; exit 1; }
 
 say "7/8 Subindo a API"
-(cd apps/backend && node dist/src/main.js > "$ROOT/.api.log" 2>&1 &)
+(cd apps/backend && node dist/main.js > "$ROOT/.api.log" 2>&1 &)
 API_PID=$!
 for i in $(seq 1 40); do
   sleep 2
-  if curl -fsS http://localhost:3001/api/health >/dev/null 2>&1; then break; fi
+  if curl -fsS http://localhost:3000/api/health >/dev/null 2>&1; then break; fi
 done
-HEALTH="$(curl -fsS http://localhost:3001/api/health 2>/dev/null)"
+HEALTH="$(curl -fsS http://localhost:3000/api/health 2>/dev/null)"
 if [ -n "$HEALTH" ]; then ok "API no ar: $HEALTH"; else err "API não respondeu"; tail -30 "$ROOT/.api.log"; exit 1; fi
 
 say "8/8 Testando rotas"
-API=http://localhost:3001/api
+API=http://localhost:3000/api
 TOKEN="$(curl -fsS -X POST "$API/auth/login" -H 'Content-Type: application/json' \
   -d '{"email":"admin@agrogestor.ia.br","password":"Agro@Admin2026"}' \
   | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{try{console.log(JSON.parse(d).accessToken||'')}catch{console.log('')}})")"

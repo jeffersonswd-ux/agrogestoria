@@ -89,7 +89,7 @@ export class WhatsappService {
     const { server } = await this.serverFor(user.companyId);
     const key = this.genKey(user.companyId);
     const webhookUrl =
-      (process.env.EVOLUTION_WEBHOOK_BASE_URL || 'http://localhost:3001/api/webhooks/evolution') +
+      (process.env.EVOLUTION_WEBHOOK_BASE_URL || 'http://localhost:3000/api/webhooks/evolution') +
       `?companyId=${user.companyId}`;
     await this.call(server.baseUrl, decryptSecret(server.apiKey), '/instance/create', 'POST', {
       instanceName: key,

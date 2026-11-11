@@ -6,7 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const API = process.env.API_BASE || 'http://localhost:3001/api';
+const API = process.env.API_BASE || 'http://localhost:3000/api';
 const stamp = Date.now().toString(36);
 
 function readEnv(file) {
