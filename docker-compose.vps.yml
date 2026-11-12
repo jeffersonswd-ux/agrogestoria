@@ -1,0 +1,57 @@
+version: '3.8'
+
+# Compose de produção do AgroGestor IA no VPS (srv1766036.hstgr.cloud).
+# O PostgreSQL e o Redis já rodam no host, na rede "bridge"; os containers do
+# AgroGestor entram na mesma rede para alcançá-los pelo nome do container.
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: agrogestor_backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agrogestor}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB:-agrogestor}?schema=public
+      REDIS_URL: redis://redis-zpro:6379
+      UPLOAD_DIR: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://localhost:3000/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
+    container_name: agrogestor_worker
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-agrogestor}:${POSTGRES_PASSWORD}@postgresql:5432/${POSTGRES_DB:-agrogestor}?schema=public
+      REDIS_URL: redis://redis-zpro:6379
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: agrogestor_frontend
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8080:80'
+    depends_on:
+      backend:
+        condition: service_started
+
+volumes:
+  uploads_data:
+
+networks:
+  default:
+    external: true
+    name: agrogestor

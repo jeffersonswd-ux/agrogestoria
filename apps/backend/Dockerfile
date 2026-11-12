@@ -19,7 +19,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/package.json ./package.json
-RUN mkdir -p /app/uploads && chown -R nodejs:nodejs /app
+# O client do Prisma precisa ser gerado dentro do node_modules de producao:
+# o stage deps instala sem devDependencies e sem o schema, entao chega vazio.
+RUN npx prisma generate --schema=prisma/schema.prisma && mkdir -p /app/uploads && chown -R nodejs:nodejs /app
 USER nodejs
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
