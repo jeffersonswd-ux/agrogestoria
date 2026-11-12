@@ -49,7 +49,16 @@ export class WhatsappService {
         data = { raw: text };
       }
       if (!res.ok) {
-        throw new BadRequestException(`Evolution API: ${data?.message || data?.error || res.statusText} (${res.status})`);
+        const detail = data?.message || data?.error || res.statusText;
+        if (res.status === 401 || res.status === 403) {
+          this.logger.warn(`Evolution recusou ${method} ${path} com ${res.status}`);
+          throw new BadRequestException(
+            `A Evolution API recusou a credencial do servidor (${res.status}). ` +
+              'A chave precisa ser a AUTHENTICATION_API_KEY global, não o token de uma instância. ' +
+              'Ajuste a chave em Super Admin > Integrações.',
+          );
+        }
+        throw new BadRequestException(`Evolution API: ${detail} (${res.status})`);
       }
       return data;
     } catch (err) {
@@ -85,23 +94,42 @@ export class WhatsappService {
   async createInstance(user: AuthUser) {
     if (!user.companyId) throw new BadRequestException('Usuário sem empresa');
     const existing = await this.prisma.whatsappInstance.findFirst({ where: { companyId: user.companyId } });
-    if (existing) return this.refreshStatus(user);
+    if (existing) return this.connect(user);
     const { server } = await this.serverFor(user.companyId);
-    const key = this.genKey(user.companyId);
+    let key = this.genKey(user.companyId);
     const webhookUrl =
       (process.env.EVOLUTION_WEBHOOK_BASE_URL || 'http://localhost:3000/api/webhooks/evolution') +
       `?companyId=${user.companyId}`;
-    await this.call(server.baseUrl, decryptSecret(server.apiKey), '/instance/create', 'POST', {
-      instanceName: key,
-      integration: 'WHATSAPP-BAILEYS',
-      qrcode: true,
-      webhook: {
-        url: webhookUrl,
-        byEvents: false,
-        base64: false,
-        events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT'],
-      },
-    });
+    const apiKey = decryptSecret(server.apiKey);
+    try {
+      await this.call(server.baseUrl, apiKey, '/instance/create', 'POST', {
+        instanceName: key,
+        integration: 'WHATSAPP-BAILEYS',
+        qrcode: true,
+        webhook: {
+          url: webhookUrl,
+          byEvents: false,
+          base64: false,
+          events: ['QRCODE_UPDATED', 'CONNECTION_UPDATE', 'MESSAGES_UPSERT'],
+        },
+      });
+    } catch (err) {
+      // A chave cadastrada pode ser o token de uma instância remota, não a chave
+      // global do servidor. Nesse caso só criação é barrada; reaproveitamos a
+      // instância que essa chave autentica, sem criar outra.
+      const remote = await this.call(server.baseUrl, apiKey, '/instance/fetchInstances', 'GET').catch(() => null);
+      const rows: any[] = Array.isArray(remote) ? remote : (remote?.data ?? []);
+      const mine = rows
+        .map((r) => r?.instance ?? r)
+        .filter((r) => {
+          const name = r?.instanceName ?? r?.name;
+          const tok = typeof r?.token === 'string' ? r.token : '';
+          return name && tok && tok.length === apiKey.length && tok === apiKey;
+        })
+        .map((r) => ({ name: r?.instanceName ?? r?.name, state: r?.connectionStatus ?? r?.state ?? null }));
+      if (mine.length !== 1) throw err;
+      key = mine[0].name;
+    }
     const instance = await this.prisma.whatsappInstance.create({
       data: { companyId: user.companyId, serverId: server.id, name: key, instanceKey: key, status: 'AGUARDANDO_QR' },
     });
