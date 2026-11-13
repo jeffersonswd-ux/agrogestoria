@@ -130,6 +130,13 @@ export class WhatsappService {
       if (mine.length !== 1) throw err;
       key = mine[0].name;
     }
+    const linked = await this.prisma.whatsappInstance.findUnique({ where: { instanceKey: key } });
+    if (linked) {
+      if (linked.companyId !== user.companyId || linked.serverId !== server.id) {
+        throw new BadRequestException('Esta instância já está vinculada a outra empresa ou servidor.');
+      }
+      return this.connect(user);
+    }
     const instance = await this.prisma.whatsappInstance.create({
       data: { companyId: user.companyId, serverId: server.id, name: key, instanceKey: key, status: 'AGUARDANDO_QR' },
     });
