@@ -4,7 +4,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const API = process.env.API_BASE || 'http://localhost:3001/api';
+const API = process.env.API_BASE || 'http://localhost:3000/api';
 
 function readEnv(file) {
   const env = {};

@@ -85,7 +85,7 @@ async function bootstrap() {
     logger.warn('Painel web não encontrado — apenas a API está disponível (defina WEB_DIR)');
   }
 
-  const port = Number(process.env.PORT) || 3001;
+  const port = Number(process.env.PORT) || 3000;
   const host = process.env.HOST || '0.0.0.0';
   await app.listen(port, host);
   logger.log(`AgroGestor IA backend rodando em http://${host}:${port}/api  (docs: /api/docs)`);

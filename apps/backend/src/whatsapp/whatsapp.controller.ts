@@ -18,13 +18,15 @@ export class WhatsappController {
 
   @Roles(UserRole.ADMIN_CLIENTE)
   @Post('connect')
-  connect(@CurrentUser() user: AuthUser) {
+  connect(@CurrentUser() user: AuthUser, @Body() body?: any) {
+    // body opcional: o Fastify rejeita corpo vazio com content-type json,
+    // e o painel envia `{}`; declarar @Body evita o 400 do parser.
     return this.service.createInstance(user);
   }
 
   @Roles(UserRole.ADMIN_CLIENTE)
   @Post('qr')
-  qr(@CurrentUser() user: AuthUser) {
+  qr(@CurrentUser() user: AuthUser, @Body() body?: any) {
     return this.service.connect(user);
   }
 

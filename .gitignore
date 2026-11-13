@@ -11,7 +11,27 @@ coverage/
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+.env.staging
+.env.test
+.env.*
 !.env.example
+!**/.env.example
+
+# Chaves e certificados (nunca versionar)
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.kdbx
 
 # Logs
 logs/
@@ -36,6 +56,18 @@ apps/backend/public/
 
 # Segredos gerados localmente (nunca versionar)
 SEGREDOS_HOSTINGER.txt
+*SEGREDOS*
+*segredos*.txt
+.git-commit-message.txt
+
+# Configuração local do editor / assistente (nunca versionar)
+.claude/settings.local.json
+
+# Credenciais e tokens
+.credentials
+.npmrc
+.netrc
+*.token
 
 # Diretório temporário do teste de build de produção
 .producao-teste/

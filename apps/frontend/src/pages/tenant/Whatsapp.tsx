@@ -27,7 +27,7 @@ export default function Whatsapp() {
     setBusy(true);
     try {
       const res = await fn();
-      after?.(res);
+      after?.(res.data);
       qc.invalidateQueries({ queryKey: ['tenant-whatsapp'] } as any);
     } catch (err) {
       setError(apiErrorMessage(err));

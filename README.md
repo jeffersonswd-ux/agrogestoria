@@ -61,7 +61,7 @@ npm run db:migrate
 npm run seed
 
 # Terminal 3 — API
-npm run dev:backend        # http://localhost:3001/api  ·  docs em /api/docs
+npm run dev:backend        # http://localhost:3000/api  ·  docs em /api/docs
 
 # Terminal 4 — workers (filas BullMQ)
 npm run dev:worker
@@ -117,7 +117,7 @@ O Super Admin ignora o filtro de empresa para dar suporte, e toda ação dele é
 
 - [DEPLOY.md](DEPLOY.md) — instalação em nuvem, **deploy na Hostinger**, proxy reverso, HTTPS e backup
 - [PROGRESSO.md](PROGRESSO.md) — módulos concluídos, testes executados e pendências
-- Documentação interativa da API: `http://localhost:3001/api/docs`
+- Documentação interativa da API: `http://localhost:3000/api/docs`
 
 ## Deploy em um processo só (Hostinger, Render, VPS)
 
